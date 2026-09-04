@@ -64,12 +64,27 @@ Dashboard de Supabase — ahí es donde el administrador gestiona el acceso, sin
 
 ## 4. Importar los territorios a la tabla `assignments`
 
-`supabase-seed.json` (en la raíz de este proyecto) ya trae un renglón por cada uno de los
-14,707 territorios de las 8 hojas, listo para subir:
+Hay dos formas de subir los 14,707 renglones (uno por territorio de las 8 hojas). Solo
+necesitas usar una de las dos:
+
+**Opción A — script (recomendada, más rápida):**
 
 ```bash
 npm run seed
 ```
+
+**Opción B — CSV desde el Dashboard**, si prefieres no usar la Service Role Key desde tu
+máquina: genera `supabase-seed.csv` a partir del JSON...
+
+```bash
+npm run convert:csv
+```
+
+...y en Supabase Dashboard ve a **Table Editor > assignments > Insert > Import data from
+CSV**, selecciona `supabase-seed.csv` y confirma que las columnas coincidan (`doc_id`,
+`layer`, `territory_id`, `label`, `responsable`, `prioritario`, `pendiente`, `updated_at`,
+`updated_by`). El importador de la interfaz solo acepta CSV, no JSON — por eso existe este
+paso adicional.
 
 ## 5. Ejecutar en desarrollo
 

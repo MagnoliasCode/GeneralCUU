@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "convert": "node scripts/convert-excel.cjs",
+    "convert:csv": "node scripts/json-to-csv.cjs",
     "seed": "node scripts/seed-supabase.mjs",
     "create-admins": "node scripts/create-admin-users.mjs"
   },
