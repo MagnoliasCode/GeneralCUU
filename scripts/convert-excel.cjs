@@ -29,6 +29,9 @@ const LAYERS = [
     name: '2 Zonas azules',
     sheet: '2 Zonas azules',
     idCol: 'ID',
+    // El Excel tiene un ID=8 duplicado en dos zonas distintas (error de captura en el
+    // origen); se usa ID+ZONA como identificador compuesto para que no choquen.
+    idFn: (r) => `${r.ID}_${r.ZONA}`,
     wktCol: 'WKT_ZONA',
     label: (r) => `Zona ${r.ZONA} (Secc. ${r.SECCIONES})`,
     props: ['ENTIDAD', 'MUNICIPIO', 'ID_MUN', 'DISTRITO_FEDERAL', 'DISTRITO_LOCAL', 'SECCIONES', 'ZONA', 'COORDINADOR', 'ENLACE_SECCION_ZONA', 'ETIQUETA'],
@@ -105,9 +108,10 @@ for (const layer of LAYERS) {
   let errors = 0;
 
   for (const r of rows) {
-    const id = r[layer.idCol];
+    const rawId = r[layer.idCol];
+    const id = layer.idFn ? layer.idFn(r) : rawId;
     const wkt = r[layer.wktCol];
-    if (id === null || id === undefined || !wkt) continue;
+    if (rawId === null || rawId === undefined || !wkt) continue;
     let geom;
     try {
       geom = wellknown.parse(wkt);
@@ -194,6 +198,17 @@ for (const layer of LAYERS) {
   fs.writeFileSync(outFile, JSON.stringify(fc));
   const sizeKB = (fs.statSync(outFile).size / 1024).toFixed(1);
   summary.push({ layer: 'casillas', rows: rows.length, features: features.length, errors: rows.length - idx, sizeKB });
+}
+
+const seenDocIds = new Map();
+const duplicateDocIds = [];
+seedDocs.forEach((d, i) => {
+  if (seenDocIds.has(d.doc_id)) duplicateDocIds.push({ doc_id: d.doc_id, firstIndex: seenDocIds.get(d.doc_id), index: i });
+  else seenDocIds.set(d.doc_id, i);
+});
+if (duplicateDocIds.length > 0) {
+  console.error('ADVERTENCIA: doc_id duplicados detectados (causarán error al hacer upsert en Supabase):');
+  console.error(duplicateDocIds);
 }
 
 fs.writeFileSync(OUT_SEED, JSON.stringify(seedDocs, null, 2));
