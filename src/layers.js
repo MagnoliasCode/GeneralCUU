@@ -7,6 +7,7 @@ export const LAYERS = [
   { key: 'distrito_local', name: 'Distrito Local', color: '#16a34a', type: 'polygon' },
   { key: 'distrito_federal', name: 'Distrito Federal', color: '#a16207', type: 'polygon' },
   { key: 'casillas', name: 'Casillas', color: '#db2777', type: 'point' },
+  { key: 'municipios', name: 'Municipios', color: '#334155', type: 'polygon' },
 ];
 
 export function layerDataUrl(key) {

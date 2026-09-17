@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC = path.resolve(__dirname, '..', '..', 'Catalogo ordenado.xlsx');
+const MUNICIPIOS_SRC = path.resolve(__dirname, '..', 'Municipios WKT.xlsx');
 const OUT_DATA = path.resolve(__dirname, '..', 'public', 'data');
 const OUT_SEED = path.resolve(__dirname, '..', 'supabase-seed.json');
 
@@ -198,6 +199,57 @@ for (const layer of LAYERS) {
   fs.writeFileSync(outFile, JSON.stringify(fc));
   const sizeKB = (fs.statSync(outFile).size / 1024).toFixed(1);
   summary.push({ layer: 'casillas', rows: rows.length, features: features.length, errors: rows.length - idx, sizeKB });
+}
+
+// Municipios: fuente separada (Municipios WKT.xlsx), una hoja "Sheet1"
+{
+  const wbMun = XLSX.readFile(MUNICIPIOS_SRC, { cellDates: false });
+  const ws = wbMun.Sheets[wbMun.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
+  const features = [];
+  let errors = 0;
+  for (const r of rows) {
+    const id = r['ID MUNICIPIO'];
+    const wkt = r['WKT'];
+    if (id === null || id === undefined || !wkt) continue;
+    let geom;
+    try {
+      geom = wellknown.parse(wkt);
+      if (!geom) throw new Error('null geometry');
+    } catch (e) {
+      errors++;
+      continue;
+    }
+    let feature = toFeature(geom, id, 'municipios', {
+      label: r['MUNICIPIO'],
+      MUNICIPIO: r['MUNICIPIO'],
+      ENCARGADO: r['Encargado'],
+      DISTRITO_LOCAL: r['NUEVA DISTRITACION LOCAL'],
+      DISTRITO_LOCAL_LABEL: r['NUEVA DISTRITACION LOCAL2'],
+    });
+    try {
+      feature = simplify(feature, { tolerance: 0.0005, highQuality: false, mutate: true });
+    } catch (e) {
+      // keep original geometry if simplify fails
+    }
+    features.push(feature);
+    seedDocs.push({
+      doc_id: `municipios_${id}`,
+      layer: 'municipios',
+      territory_id: String(id),
+      label: feature.properties.label,
+      responsable: '',
+      prioritario: false,
+      pendiente: false,
+      updated_at: null,
+      updated_by: null,
+    });
+  }
+  const fc = { type: 'FeatureCollection', features };
+  const outFile = path.join(OUT_DATA, 'municipios.geojson.json');
+  fs.writeFileSync(outFile, JSON.stringify(fc));
+  const sizeKB = (fs.statSync(outFile).size / 1024).toFixed(1);
+  summary.push({ layer: 'municipios', rows: rows.length, features: features.length, errors, sizeKB });
 }
 
 const seenDocIds = new Map();
